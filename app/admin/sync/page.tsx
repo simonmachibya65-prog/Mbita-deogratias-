@@ -173,22 +173,45 @@ export default function SyncPage() {
           <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
             <h4 className="font-medium text-amber-900 mb-2 flex items-center gap-2">
               <span>⚡</span>
-              <span>Supported Sources (Priority Order)</span>
+              <span>Supported Academic Platforms</span>
             </h4>
-            <ul className="text-sm text-amber-800 space-y-1.5">
-              <li className="flex items-center gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-amber-800">
+              <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                <strong>ORCID</strong> - Most reliable, requires ORCID ID in profile
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                <strong>Semantic Scholar</strong> - Free API, good coverage
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                <strong>CrossRef</strong> - DOI-based lookup, academic journals
-              </li>
-            </ul>
+                <strong>Google Scholar</strong> - Full support ✅
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <strong>ORCID</strong> - Full support ✅
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <strong>Semantic Scholar</strong> - Full support ✅
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <strong>CrossRef</strong> - Full support ✅
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <strong>arXiv</strong> - Full support ✅
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                <strong>ResearchGate</strong> - Coming soon
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                <strong>Academia.edu</strong> - Coming soon
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                <strong>PubMed</strong> - Coming soon
+              </div>
+            </div>
+            <p className="text-xs text-amber-700 mt-3">
+              💡 Just add any of these profile links in <strong>Profile Settings → Academic Links</strong> and the system will automatically detect and fetch publications!
+            </p>
           </div>
 
           <div className="flex gap-3">
@@ -479,19 +502,41 @@ export default function SyncPage() {
           <div className="border-l-4 border-blue-500 pl-4">
             <h4 className="font-semibold text-navy-900 mb-2 flex items-center gap-2">
               <span className="bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
-              <span>Add Your ORCID ID (Recommended)</span>
+              <span>Add Your Academic Profile Links</span>
             </h4>
             <p className="text-gray-600 mb-2">
-              ORCID provides the most reliable and complete publication data. Get your ORCID ID from{" "}
-              <a href="https://orcid.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                orcid.org
-              </a>
+              The system automatically detects and fetches from <strong>any supported platform</strong>. Just add the profile URL!
             </p>
-            <div className="bg-gray-50 rounded p-3 mt-2">
-              <p className="text-xs text-gray-500 mb-1">Example format:</p>
-              <code className="text-xs bg-white px-2 py-1 rounded border">0000-0002-1825-0097</code>
+            <div className="bg-gray-50 rounded p-3 mt-2 space-y-2">
+              <p className="text-xs text-gray-700 font-semibold">✅ Supported Platforms:</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="text-green-600">✓</span>
+                  <span>Google Scholar</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-green-600">✓</span>
+                  <span>ORCID</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-green-600">✓</span>
+                  <span>Semantic Scholar</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-green-600">✓</span>
+                  <span>CrossRef</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-green-600">✓</span>
+                  <span>arXiv</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-blue-600">◆</span>
+                  <span>By Name (fallback)</span>
+                </div>
+              </div>
               <p className="text-xs text-gray-500 mt-2">
-                Go to <strong>Profile Settings → Academic Links</strong> and add your ORCID profile URL
+                📍 Go to <strong>Profile Settings → Academic Links</strong> to add your profile URLs
               </p>
             </div>
           </div>
@@ -499,42 +544,63 @@ export default function SyncPage() {
           <div className="border-l-4 border-green-500 pl-4">
             <h4 className="font-semibold text-navy-900 mb-2 flex items-center gap-2">
               <span className="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
-              <span>Alternative: Use Your Author Name</span>
+              <span>System Auto-Detects Platform</span>
             </h4>
             <p className="text-gray-600 mb-2">
-              If you don't have ORCID, the system will search <strong>Semantic Scholar</strong> and <strong>CrossRef</strong> using your full name from profile.
+              When you click sync, the system:
             </p>
             <div className="bg-gray-50 rounded p-3 mt-2">
-              <p className="text-xs text-gray-500">
-                ✅ Make sure your <strong>Full Name</strong> in Profile Settings matches your published name exactly
-              </p>
+              <ul className="text-xs text-gray-700 space-y-1.5">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">1.</span>
+                  <span>Reads all academic profile links from your profile</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">2.</span>
+                  <span>Detects which platform each link is from (Google Scholar, ORCID, etc.)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">3.</span>
+                  <span>Extracts required IDs automatically</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">4.</span>
+                  <span>Fetches publications from each source</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">5.</span>
+                  <span>Combines and removes duplicates</span>
+                </li>
+              </ul>
             </div>
           </div>
 
           <div className="border-l-4 border-purple-500 pl-4">
             <h4 className="font-semibold text-navy-900 mb-2 flex items-center gap-2">
               <span className="bg-purple-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
-              <span>Run Auto-Sync</span>
+              <span>Preview & Import</span>
             </h4>
             <div className="space-y-2 text-gray-600">
               <p>• Click <strong className="text-blue-600">Preview</strong> to see publications before importing</p>
               <p>• Review the list to ensure accuracy</p>
               <p>• Click <strong className="text-green-600">Import</strong> to save to database</p>
               <p>• View imported publications in <strong>Publications</strong> section</p>
+              <p>• System automatically skips duplicates</p>
             </div>
           </div>
 
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <h4 className="font-semibold text-red-900 mb-2 flex items-center gap-2">
-              <span>⚠️</span>
-              <span>Important Notes</span>
+              <span>💡</span>
+              <span>Pro Tips</span>
             </h4>
             <ul className="text-xs text-red-800 space-y-1.5">
-              <li>• Auto-sync may not find all publications if your name varies across sources</li>
-              <li>• ORCID gives best results - highly recommended</li>
-              <li>• Duplicate detection is automatic - safe to run multiple times</li>
-              <li>• Manual publication entry is always available as backup</li>
-              <li>• CrossRef searches may be slower but have good academic coverage</li>
+              <li>• <strong>Best Results:</strong> Add Google Scholar + ORCID for maximum coverage</li>
+              <li>• <strong>Auto-Detection:</strong> System automatically detects platform from URL</li>
+              <li>• <strong>Multiple Sources:</strong> Add links from different platforms - system merges them</li>
+              <li>• <strong>Name Fallback:</strong> If no profile links work, system searches by your name</li>
+              <li>• <strong>Safe to Retry:</strong> Duplicate detection means you can sync multiple times</li>
+              <li>• <strong>Manual Entry:</strong> Can always manually add publications if auto-sync misses any</li>
             </ul>
           </div>
         </div>

@@ -22,6 +22,30 @@ function extractScholarID(input: string): string | null {
   return match ? match[1] : null;
 }
 
+// Helper to extract ResearchGate profile name
+function extractResearchGateProfile(input: string): string | null {
+  const match = input.match(/researchgate\.net\/profile\/([^/?]+)/);
+  return match ? match[1] : null;
+}
+
+// Helper to extract Academia.edu profile
+function extractAcademiaProfile(input: string): string | null {
+  const match = input.match(/academia\.edu\/([^/?]+)/);
+  return match ? match[1] : null;
+}
+
+// Helper to extract Semantic Scholar author ID
+function extractSemanticScholarID(input: string): string | null {
+  const match = input.match(/author\/([^/?]+)/);
+  return match ? match[1] : null;
+}
+
+// Helper to extract arXiv author ID
+function extractArxivID(input: string): string | null {
+  const match = input.match(/arxiv\.org\/a\/([^/?]+)/);
+  return match ? match[1] : null;
+}
+
 // Fetch from Google Scholar using web scraping
 async function fetchFromGoogleScholar(scholarId: string) {
   try {
@@ -239,6 +263,50 @@ async function fetchFromCrossRef(authorName: string) {
   }
 }
 
+// Fetch from arXiv by author name
+async function fetchFromArxiv(authorName: string) {
+  try {
+    const response = await fetch(
+      `http://export.arxiv.org/api/query?search_query=au:${encodeURIComponent(authorName)}&max_results=100`
+    );
+
+    if (!response.ok) return [];
+
+    const xml = await response.text();
+    const publications: any[] = [];
+    
+    // Parse XML entries
+    const entryRegex = /<entry>(.*?)<\/entry>/gs;
+    const entries = xml.match(entryRegex) || [];
+
+    for (const entry of entries) {
+      const titleMatch = entry.match(/<title>(.*?)<\/title>/s);
+      const publishedMatch = entry.match(/<published>(.*?)<\/published>/);
+      const summaryMatch = entry.match(/<summary>(.*?)<\/summary>/s);
+      
+      if (titleMatch) {
+        const year = publishedMatch ? new Date(publishedMatch[1]).getFullYear() : new Date().getFullYear();
+        
+        publications.push({
+          title: titleMatch[1].trim().replace(/\n/g, ' '),
+          year,
+          venue: "arXiv",
+          authors: [],
+          type: "preprint",
+          abstract: summaryMatch ? summaryMatch[1].trim().substring(0, 200) : undefined,
+          source: "arXiv",
+        });
+      }
+    }
+
+    console.log(`Found ${publications.length} papers from arXiv`);
+    return publications;
+  } catch (error) {
+    console.error("arXiv fetch error:", error);
+    return [];
+  }
+}
+
 // GET - Preview publications without importing
 export async function GET(request: NextRequest) {
   try {
@@ -274,7 +342,12 @@ export async function GET(request: NextRequest) {
     debugInfo.push(`Searching for: ${profile.fullName}`);
     debugInfo.push(`Academic profiles configured: ${academicProfiles.length}`);
 
-    // Try Google Scholar first (most comprehensive for academic profiles)
+    // Log all academic profiles
+    academicProfiles.forEach((p, idx) => {
+      debugInfo.push(`Profile ${idx + 1}: ${p.label} - ${p.url}`);
+    });
+
+    // Try Google Scholar first (most comprehensive)
     const scholarProfile = academicProfiles.find((p) => 
       p.label.toLowerCase().includes("scholar") || 
       p.url.toLowerCase().includes("scholar.google")
@@ -282,12 +355,12 @@ export async function GET(request: NextRequest) {
 
     if (scholarProfile) {
       const scholarId = extractScholarID(scholarProfile.url);
-      debugInfo.push(`Google Scholar profile found: ${scholarProfile.url}`);
-      debugInfo.push(`Extracted Scholar ID: ${scholarId || "FAILED"}`);
+      debugInfo.push(`🎓 Google Scholar profile found: ${scholarProfile.url}`);
+      debugInfo.push(`   Extracted Scholar ID: ${scholarId || "FAILED"}`);
       
       if (scholarId) {
         const scholarPubs = await fetchFromGoogleScholar(scholarId);
-        debugInfo.push(`Google Scholar returned ${scholarPubs.length} publications`);
+        debugInfo.push(`   ✅ Google Scholar returned ${scholarPubs.length} publications`);
         if (scholarPubs.length > 0) {
           allPublications.push(...scholarPubs);
           sources.push("Google Scholar");
@@ -295,8 +368,6 @@ export async function GET(request: NextRequest) {
       } else {
         errors.push("Invalid Google Scholar ID in URL: " + scholarProfile.url);
       }
-    } else {
-      debugInfo.push("No Google Scholar profile found in academic links");
     }
 
     // Try ORCID
@@ -306,42 +377,90 @@ export async function GET(request: NextRequest) {
 
     if (orcidProfile) {
       const orcidId = extractORCID(orcidProfile.url);
-      debugInfo.push(`ORCID profile found: ${orcidProfile.url}`);
-      debugInfo.push(`Extracted ORCID ID: ${orcidId || "FAILED"}`);
+      debugInfo.push(`🆔 ORCID profile found: ${orcidProfile.url}`);
+      debugInfo.push(`   Extracted ORCID ID: ${orcidId || "FAILED"}`);
       
       if (orcidId) {
         const orcidPubs = await fetchFromORCID(orcidId);
-        debugInfo.push(`ORCID returned ${orcidPubs.length} publications`);
+        debugInfo.push(`   ✅ ORCID returned ${orcidPubs.length} publications`);
         if (orcidPubs.length > 0) {
           allPublications.push(...orcidPubs);
           sources.push("ORCID");
         }
       } else {
-        errors.push("Invalid ORCID ID format in URL: " + orcidProfile.url);
+        errors.push("Invalid ORCID ID in URL: " + orcidProfile.url);
       }
-    } else {
-      debugInfo.push("No ORCID profile found in academic links");
     }
 
-    // Try Semantic Scholar (only if Google Scholar didn't return results)
+    // Try ResearchGate
+    const rgProfile = academicProfiles.find((p) => 
+      p.label.toLowerCase().includes("researchgate") || 
+      p.url.toLowerCase().includes("researchgate.net")
+    );
+
+    if (rgProfile) {
+      const profileName = extractResearchGateProfile(rgProfile.url);
+      debugInfo.push(`🔬 ResearchGate profile found: ${rgProfile.url}`);
+      debugInfo.push(`   Note: ResearchGate requires API key (not implemented yet)`);
+    }
+
+    // Try Academia.edu
+    const academiaProfile = academicProfiles.find((p) => 
+      p.label.toLowerCase().includes("academia") || 
+      p.url.toLowerCase().includes("academia.edu")
+    );
+
+    if (academiaProfile) {
+      debugInfo.push(`🎓 Academia.edu profile found: ${academiaProfile.url}`);
+      debugInfo.push(`   Note: Academia.edu requires web scraping (not implemented yet)`);
+    }
+
+    // Try arXiv
+    const arxivProfile = academicProfiles.find((p) => 
+      p.label.toLowerCase().includes("arxiv") || 
+      p.url.toLowerCase().includes("arxiv.org")
+    );
+
+    if (arxivProfile) {
+      debugInfo.push(`📄 arXiv profile found: ${arxivProfile.url}`);
+      const arxivPubs = await fetchFromArxiv(profile.fullName);
+      debugInfo.push(`   ✅ arXiv returned ${arxivPubs.length} publications`);
+      if (arxivPubs.length > 0) {
+        allPublications.push(...arxivPubs);
+        sources.push("arXiv");
+      }
+    }
+
+    // Fallback: Try Semantic Scholar (only if no results from direct profiles)
     if (allPublications.length === 0) {
-      debugInfo.push(`Searching Semantic Scholar for: ${profile.fullName}`);
+      debugInfo.push(`🔍 Fallback: Searching Semantic Scholar for: ${profile.fullName}`);
       const scholarPubs = await fetchFromSemanticScholar(profile.fullName);
-      debugInfo.push(`Semantic Scholar returned ${scholarPubs.length} publications`);
+      debugInfo.push(`   Semantic Scholar returned ${scholarPubs.length} publications`);
       if (scholarPubs.length > 0) {
         allPublications.push(...scholarPubs);
         sources.push("Semantic Scholar");
       }
     }
 
-    // Try CrossRef (only if no results from Google Scholar or Semantic Scholar)
+    // Fallback: Try CrossRef (only if still no results)
     if (allPublications.length === 0) {
-      debugInfo.push(`Searching CrossRef for: ${profile.fullName}`);
+      debugInfo.push(`🔍 Fallback: Searching CrossRef for: ${profile.fullName}`);
       const crossRefPubs = await fetchFromCrossRef(profile.fullName);
-      debugInfo.push(`CrossRef returned ${crossRefPubs.length} publications`);
+      debugInfo.push(`   CrossRef returned ${crossRefPubs.length} publications`);
       if (crossRefPubs.length > 0) {
         allPublications.push(...crossRefPubs);
         sources.push("CrossRef");
+      }
+    }
+
+    // Fallback: Try arXiv by name if no arXiv profile was provided
+    if (!arxivProfile && allPublications.length === 0) {
+      debugInfo.push(`🔍 Fallback: Searching arXiv for: ${profile.fullName}`);
+      const arxivPubs = await fetchFromArxiv(profile.fullName);
+      debugInfo.push(`   arXiv returned ${arxivPubs.length} publications`);
+      if (arxivPubs.length > 0) {
+        allPublications.push(...arxivPubs);
+        sources.push("arXiv");
       }
     }
 
