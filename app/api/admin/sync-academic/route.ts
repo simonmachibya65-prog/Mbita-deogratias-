@@ -566,14 +566,17 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Create publication
+      // Create publication with proper type mapping
+      const mappedType = mapPublicationType(pub.type || "journal");
+      console.log(`Importing: "${pub.title}" - Type: ${pub.type} -> ${mappedType}`);
+      
       await prisma.publication.create({
         data: {
           title: pub.title,
           authors: pub.authors.length > 0 ? pub.authors : [previewData.fullName || "Unknown"],
           year: pub.year,
           venue: pub.venue,
-          type: mapPublicationType(pub.type || "journal-article"),
+          type: mappedType as any, // Cast to any to avoid TS enum issues
           abstract: `Automatically imported from ${pub.source}`,
           citations: pub.citations || 0,
           published: true,
