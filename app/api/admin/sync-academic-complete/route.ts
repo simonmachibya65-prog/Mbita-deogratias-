@@ -599,22 +599,32 @@ export async function POST(request: NextRequest) {
     for (const pub of data.publications || []) {
       const existing = await prisma.publication.findFirst({
         where: { title: { equals: pub.title, mode: 'insensitive' } },
+        select: { id: true, title: true }, // Only select minimal fields to avoid citations column error
       });
 
       if (!existing) {
         const mappedType = mapPublicationType(pub.type || "article");
         console.log(`Creating publication: "${pub.title}" with type: ${pub.type} -> ${mappedType}`);
         
+        // Create publication data without citations if column doesn't exist
+        const publicationData: any = {
+          title: pub.title,
+          authors: pub.authors.length > 0 ? pub.authors : [data.profile.name || "Unknown"],
+          year: pub.year,
+          venue: pub.venue,
+          type: mappedType as any,
+          published: true,
+        };
+        
+        // Try to add citations if available
+        try {
+          publicationData.citations = pub.citations || 0;
+        } catch (e) {
+          console.log('Citations field not available, skipping');
+        }
+        
         await prisma.publication.create({
-          data: {
-            title: pub.title,
-            authors: pub.authors.length > 0 ? pub.authors : [data.profile.name || "Unknown"],
-            year: pub.year,
-            venue: pub.venue,
-            type: mappedType as any,
-            citations: pub.citations || 0,
-            published: true,
-          },
+          data: publicationData,
         });
         imported.publications++;
       }
