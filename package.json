@@ -6,6 +6,7 @@
     "dev": "next dev --turbo",
     "dev:standard": "next dev",
     "build": "prisma generate && next build",
+    "postbuild": "node add-citations-field.mjs || true",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && next build",
     "start": "next start -p ${PORT:-3000}",

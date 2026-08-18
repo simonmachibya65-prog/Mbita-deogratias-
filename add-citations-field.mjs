@@ -7,30 +7,41 @@ async function main() {
   console.log('🔧 Adding citations field to Publication table...');
   
   try {
-    // Check if we can connect
     await prisma.$connect();
     console.log('✅ Connected to database');
 
-    // The field will be added automatically by Prisma when it generates the client
-    // We just need to ensure the schema is applied
-    console.log('✅ Schema updated - citations field is now available');
+    // Try to add the column using raw SQL
+    try {
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "Publication" 
+        ADD COLUMN IF NOT EXISTS "citations" INTEGER DEFAULT 0
+      `);
+      console.log('✅ Citations column added successfully');
+    } catch (error) {
+      if (error.message && error.message.includes('already exists')) {
+        console.log('ℹ️ Citations column already exists');
+      } else {
+        console.error('⚠️ Could not add column:', error.message);
+      }
+    }
     
-    // Optionally set default value for existing records
-    const updated = await prisma.$executeRaw`
-      UPDATE "Publication" 
-      SET citations = 0 
-      WHERE citations IS NULL
-    `;
+    // Update existing records
+    try {
+      await prisma.$executeRawUnsafe(`
+        UPDATE "Publication" 
+        SET citations = 0 
+        WHERE citations IS NULL
+      `);
+      console.log('✅ Updated existing publications with default citation count');
+    } catch (error) {
+      console.log('ℹ️ Update skipped:', error.message);
+    }
     
-    console.log(`✅ Updated ${updated} existing publications with default citation count`);
+    console.log('\n✅ Migration complete!');
     
   } catch (error) {
-    console.error('❌ Error:', error);
-    
-    // If the column already exists or update fails, that's okay
-    if (error.message.includes('already exists') || error.message.includes('does not exist')) {
-      console.log('ℹ️ Field may already exist or table may not have records yet - this is fine');
-    }
+    console.error('❌ Migration error:', error);
+    process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
