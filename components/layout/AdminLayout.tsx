@@ -31,6 +31,7 @@ const sidebarGroups = [
       { href: "/admin/about", label: "About Page", icon: "ℹ️" },
       { href: "/admin/profile", label: "Profile", icon: "👤" },
       { href: "/admin/sync", label: "Auto-Sync", icon: "🔄" },
+      { href: "/admin/sync-complete", label: "Complete Sync", icon: "⚡" },
       { href: "/admin/research", label: "Research", icon: "🔬" },
       { href: "/admin/datasets", label: "Datasets", icon: "📊" },
       { href: "/admin/presentations", label: "Presentations", icon: "🎤" },
