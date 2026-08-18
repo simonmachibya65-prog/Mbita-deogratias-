@@ -34,14 +34,7 @@ export async function GET() {
         bio: 'Update your bio in the admin panel.',
         photoUrl: '',
         cvUrl: '',
-        academicProfiles: {
-          googleScholar: '',
-          orcid: '',
-          researchGate: '',
-          linkedin: '',
-          twitter: '',
-          github: ''
-        }
+        academicProfiles: []
       }
     });
 
