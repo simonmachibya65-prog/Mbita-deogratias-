@@ -566,7 +566,53 @@ export default function AdminProfilePage() {
                     (Get from Google Maps → Share → Embed a map → copy src URL)
                   </span>
                 </label>
-                <input id="mapEmbedUrl" type="url" value={(profile as unknown as Record<string, unknown>).mapEmbedUrl as string ?? ""} onChange={(e) => setProfile({ ...profile, mapEmbedUrl: e.target.value } as typeof profile)} placeholder="https://www.google.com/maps/embed?pb=..." className={inputClass(false)} />
+                <div className="flex gap-2">
+                  <input id="mapEmbedUrl" type="url" value={(profile as unknown as Record<string, unknown>).mapEmbedUrl as string ?? ""} onChange={(e) => setProfile({ ...profile, mapEmbedUrl: e.target.value } as typeof profile)} placeholder="https://www.google.com/maps/embed?pb=..." className={inputClass(false)} />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!navigator.geolocation) {
+                        alert('Geolocation is not supported by your browser');
+                        return;
+                      }
+                      
+                      showToast("success", "Getting your location...");
+                      
+                      navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                          const lat = position.coords.latitude;
+                          const lng = position.coords.longitude;
+                          const embedUrl = `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3000!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zM!5e0!3m2!1sen!2s!4v1234567890!5m2!1sen!2s`;
+                          setProfile({ ...profile, mapEmbedUrl: embedUrl } as typeof profile);
+                          showToast("success", `Location detected! Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`);
+                        },
+                        (error) => {
+                          console.error('Geolocation error:', error);
+                          let message = 'Failed to get location. ';
+                          if (error.code === 1) message += 'Please allow location access.';
+                          else if (error.code === 2) message += 'Location unavailable.';
+                          else if (error.code === 3) message += 'Request timeout.';
+                          showToast("error", message);
+                        },
+                        {
+                          enableHighAccuracy: true,
+                          timeout: 10000,
+                          maximumAge: 0
+                        }
+                      );
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium whitespace-nowrap flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Auto-Detect
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-navy-400">
+                  Click "Auto-Detect" to use your current GPS location automatically
+                </p>
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="buildingImageUrl" className="block text-sm font-medium text-navy-800 mb-1">Office/Building Image URL</label>
