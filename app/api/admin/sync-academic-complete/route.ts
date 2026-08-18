@@ -10,6 +10,29 @@ async function getUsername(request: NextRequest): Promise<string> {
   return session.username ?? "admin";
 }
 
+// Helper function to map external publication types to Prisma enum
+function mapPublicationType(externalType: string): string {
+  const typeMap: Record<string, string> = {
+    // CrossRef types
+    'journal-article': 'journal',
+    'proceedings-article': 'conference',
+    'book-chapter': 'book_chapter',
+    'book': 'book',
+    'report': 'technical_report',
+    'posted-content': 'other',
+    // Google Scholar / Semantic Scholar types
+    'article': 'journal',
+    'conference': 'conference',
+    'chapter': 'book_chapter',
+    'preprint': 'other',
+    // Fallback
+    'other': 'other',
+  };
+
+  const normalized = externalType.toLowerCase().replace(/\s+/g, '-');
+  return typeMap[normalized] || 'other';
+}
+
 // Extract Google Scholar ID
 function extractScholarID(url: string): string | null {
   const match = url.match(/user=([^&]+)/);
@@ -146,7 +169,7 @@ async function fetchCompleteGoogleScholar(scholarId: string): Promise<SyncedCont
         venue: "Journal/Conference",
         authors: [],
         citations: citations[i] || 0,
-        type: "journal",
+        type: mapPublicationType("article"), // Google Scholar publications, default to article
         source: "Google Scholar",
       });
     }
@@ -212,7 +235,7 @@ async function fetchCompleteORCID(orcidId: string): Promise<SyncedContent> {
             year: year ? parseInt(year) : new Date().getFullYear(),
             venue: venue || "Unknown Journal",
             authors: [],
-            type: "journal",
+            type: mapPublicationType("journal-article"),
             source: "ORCID",
           });
         }
@@ -271,7 +294,7 @@ async function fetchFromScopus(authorName: string): Promise<SyncedContent> {
           venue: paper.venue || "Unknown Venue",
           authors: paper.authors?.map((a: any) => a.name) || [],
           citations: paper.citationCount || 0,
-          type: "journal",
+          type: mapPublicationType(paper.publicationTypes?.[0] || "article"),
           source: "Scopus (via Semantic Scholar)",
         });
       }
@@ -317,7 +340,7 @@ async function fetchFromResearchGate(profileName: string, authorName: string): P
         year: year || new Date().getFullYear(),
         venue: item['container-title']?.[0] || "Unknown Journal",
         authors,
-        type: "journal",
+        type: mapPublicationType(item.type || "article"),
         doi: item.DOI || null,
         source: "ResearchGate (via CrossRef)",
       });
@@ -363,7 +386,7 @@ async function fetchFromAcademia(profileName: string, authorName: string): Promi
         year: year || new Date().getFullYear(),
         venue: item['container-title']?.[0] || "Unknown Journal",
         authors,
-        type: "journal",
+        type: mapPublicationType(item.type || "article"),
         doi: item.DOI || null,
         source: "Academia.edu (via CrossRef)",
       });
@@ -585,7 +608,7 @@ export async function POST(request: NextRequest) {
             authors: pub.authors.length > 0 ? pub.authors : [data.profile.name || "Unknown"],
             year: pub.year,
             venue: pub.venue,
-            type: "journal",
+            type: mapPublicationType(pub.type || "article") as any,
             citations: pub.citations || 0,
             published: true,
           },
