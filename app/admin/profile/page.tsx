@@ -639,66 +639,207 @@ export default function AdminProfilePage() {
       {activeTab === "academic" && profile && (
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="bg-white border border-border rounded-xl p-6">
-            <h2 className="font-semibold text-navy-900 text-base mb-4">Academic Profile Links</h2>
-            <p className="text-sm text-navy-500 mb-4">These links appear on the homepage and contact page.</p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-semibold text-navy-900 text-base">Academic Profile Links</h2>
+                <p className="text-sm text-navy-500 mt-1">These links appear on the homepage and contact page.</p>
+              </div>
+              <span className="px-3 py-1 bg-primary-light text-primary text-xs font-semibold rounded-full">
+                {(profile.academicProfiles ?? []).length} {(profile.academicProfiles ?? []).length === 1 ? 'Link' : 'Links'}
+              </span>
+            </div>
 
-            <div className="space-y-3">
-              {(profile.academicProfiles ?? []).map((ap, i) => (
-                <div key={i} className="flex gap-3 items-center">
-                  <input
-                    type="text"
-                    placeholder="Label (e.g. Google Scholar)"
-                    value={ap.label}
-                    onChange={(e) => {
-                      const updated = [...profile.academicProfiles];
-                      updated[i] = { ...updated[i], label: e.target.value };
-                      setProfile({ ...profile, academicProfiles: updated });
-                    }}
-                    className={`${inputClass(false)} flex-1`}
-                  />
-                  <input
-                    type="url"
-                    placeholder="URL"
-                    value={ap.url}
-                    onChange={(e) => {
-                      const updated = [...profile.academicProfiles];
-                      updated[i] = { ...updated[i], url: e.target.value };
-                      setProfile({ ...profile, academicProfiles: updated });
-                    }}
-                    className={`${inputClass(false)} flex-2`}
-                  />
+            {/* Common Academic Platforms */}
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <h3 className="text-sm font-semibold text-blue-900 mb-2">💡 Suggested Platforms:</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-blue-700">
+                <span>• Google Scholar</span>
+                <span>• ORCID</span>
+                <span>• ResearchGate</span>
+                <span>• Academia.edu</span>
+                <span>• LinkedIn</span>
+                <span>• Scopus</span>
+                <span>• Web of Science</span>
+                <span>• Publons</span>
+                <span>• GitHub</span>
+              </div>
+            </div>
+
+            {/* Links List */}
+            <div className="space-y-4">
+              {(profile.academicProfiles ?? []).length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed border-border rounded-xl">
+                  <svg className="w-12 h-12 mx-auto text-navy-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <p className="text-sm text-navy-500 mb-4">No academic profile links yet</p>
                   <button
                     type="button"
-                    onClick={() => {
-                      const updated = profile.academicProfiles.filter((_, idx) => idx !== i);
-                      setProfile({ ...profile, academicProfiles: updated });
-                    }}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    aria-label="Remove link"
+                    onClick={() => setProfile({ ...profile, academicProfiles: [{ label: "", url: "" }] })}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors text-sm font-medium"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
+                    Add Your First Link
                   </button>
                 </div>
-              ))}
+              ) : (
+                (profile.academicProfiles ?? []).map((ap, i) => (
+                  <div key={i} className="bg-navy-50 border border-border rounded-xl p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        <div>
+                          <label htmlFor={`label-${i}`} className="block text-xs font-semibold text-navy-700 mb-1">
+                            Platform Name *
+                          </label>
+                          <input
+                            id={`label-${i}`}
+                            type="text"
+                            placeholder="e.g., Google Scholar, ORCID, ResearchGate"
+                            value={ap.label}
+                            onChange={(e) => {
+                              const updated = [...profile.academicProfiles];
+                              updated[i] = { ...updated[i], label: e.target.value };
+                              setProfile({ ...profile, academicProfiles: updated });
+                            }}
+                            className={`${inputClass(false)} text-sm`}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`url-${i}`} className="block text-xs font-semibold text-navy-700 mb-1">
+                            Profile URL *
+                          </label>
+                          <input
+                            id={`url-${i}`}
+                            type="url"
+                            placeholder="https://scholar.google.com/citations?user=..."
+                            value={ap.url}
+                            onChange={(e) => {
+                              const updated = [...profile.academicProfiles];
+                              updated[i] = { ...updated[i], url: e.target.value };
+                              setProfile({ ...profile, academicProfiles: updated });
+                            }}
+                            className={`${inputClass(false)} text-sm font-mono`}
+                            required
+                          />
+                          {ap.url && (
+                            <a
+                              href={ap.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary-hover mt-1"
+                            >
+                              Test link
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+                        {/* Move Up */}
+                        {i > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...profile.academicProfiles];
+                              [updated[i - 1], updated[i]] = [updated[i], updated[i - 1]];
+                              setProfile({ ...profile, academicProfiles: updated });
+                            }}
+                            className="p-2 text-navy-500 hover:bg-navy-100 rounded-lg transition-colors"
+                            aria-label="Move up"
+                            title="Move up"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
+                          </button>
+                        )}
+                        {/* Move Down */}
+                        {i < (profile.academicProfiles ?? []).length - 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...profile.academicProfiles];
+                              [updated[i], updated[i + 1]] = [updated[i + 1], updated[i]];
+                              setProfile({ ...profile, academicProfiles: updated });
+                            }}
+                            className="p-2 text-navy-500 hover:bg-navy-100 rounded-lg transition-colors"
+                            aria-label="Move down"
+                            title="Move down"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        )}
+                        {/* Delete */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Remove "${ap.label || 'this link'}"?`)) {
+                              const updated = profile.academicProfiles.filter((_, idx) => idx !== i);
+                              setProfile({ ...profile, academicProfiles: updated });
+                              showToast("success", "Link removed");
+                            }
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          aria-label="Delete link"
+                          title="Delete link"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
 
-              <button
-                type="button"
-                onClick={() => setProfile({ ...profile, academicProfiles: [...(profile.academicProfiles ?? []), { label: "", url: "" }] })}
-                className="flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-lg text-sm text-navy-500 hover:border-primary hover:text-primary transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Profile Link
-              </button>
+              {/* Add New Button */}
+              {(profile.academicProfiles ?? []).length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfile({ ...profile, academicProfiles: [...(profile.academicProfiles ?? []), { label: "", url: "" }] });
+                    showToast("success", "New link added - fill in the details");
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-border rounded-xl text-sm text-navy-600 hover:border-primary hover:text-primary hover:bg-primary-light/20 transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Another Link
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="flex justify-end">
+          {/* Action Buttons */}
+          <div className="flex justify-between items-center">
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("Clear all academic profile links?")) {
+                  setProfile({ ...profile, academicProfiles: [] });
+                  showToast("success", "All links cleared");
+                }
+              }}
+              className="px-4 py-2 border border-border text-navy-600 rounded-lg hover:bg-navy-50 transition-colors text-sm font-medium"
+            >
+              Clear All
+            </button>
             <Button type="submit" variant="primary" isLoading={saving}>
-              {saving ? "Saving…" : "Save Links"}
+              {saving ? "Saving…" : `Save ${(profile.academicProfiles ?? []).length} ${(profile.academicProfiles ?? []).length === 1 ? 'Link' : 'Links'}`}
             </Button>
           </div>
         </form>
