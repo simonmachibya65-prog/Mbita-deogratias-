@@ -419,23 +419,98 @@ export default function AdminProfilePage() {
       {activeTab === "photos" && profile && (
         <div className="space-y-4">
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-            <strong>How it works:</strong> Each section of the website can have its own photo. If a section photo is not set, it automatically uses the <strong>Main / Default Photo</strong>.
+            <strong>💡 How to add photos:</strong> Upload your image to <a href="https://imgur.com/upload" target="_blank" rel="noopener noreferrer" className="underline font-semibold">Imgur</a>, right-click the image, select "Copy image address", then paste the URL in the fields below. Each section can have its own photo, or it will use the <strong>Main / Default Photo</strong>.
           </div>
 
-          {PHOTO_SLOTS.map((slot) => (
-            <PhotoUploadCard
-              key={slot.slot}
-              slot={slot.slot}
-              label={slot.label}
-              desc={slot.desc}
-              size={slot.size}
-              icon={slot.icon}
-              currentUrl={profile[slot.field] as string ?? ""}
-              fallbackUrl={slot.slot !== "main" ? profile.photoUrl : ""}
-              onUploaded={(url) => updatePhotoSlot(slot.field, url)}
-              onCleared={() => clearPhotoSlot(slot.field)}
-            />
-          ))}
+          {/* Simple URL Input Fields */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {PHOTO_SLOTS.map((slot) => {
+              const currentValue = profile[slot.field] as string ?? "";
+              return (
+                <div key={slot.slot} className="bg-white border border-border rounded-xl p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border bg-navy-50 flex items-center justify-center">
+                        {currentValue ? (
+                          <img src={currentValue} alt={slot.label} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-3xl" aria-hidden="true">{slot.icon}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xl" aria-hidden="true">{slot.icon}</span>
+                        <h3 className="font-semibold text-navy-900">{slot.label}</h3>
+                        {currentValue && (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">Active</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-navy-600 mb-3">{slot.desc}</p>
+                      <p className="text-xs text-navy-400 mb-3">Recommended size: {slot.size}</p>
+                      
+                      <div className="space-y-2">
+                        <label htmlFor={`photo-${slot.slot}`} className="block text-sm font-medium text-navy-800">
+                          Image URL (paste Imgur link here)
+                        </label>
+                        <input
+                          id={`photo-${slot.slot}`}
+                          type="url"
+                          value={currentValue}
+                          onChange={(e) => {
+                            setProfile((p) => p ? { ...p, [slot.field]: e.target.value } : p);
+                          }}
+                          placeholder="https://i.imgur.com/ABC123.jpg"
+                          className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        {currentValue && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProfile((p) => p ? { ...p, [slot.field]: "" } : p);
+                            }}
+                            className="text-xs text-red-600 hover:text-red-700 hover:underline"
+                          >
+                            Clear this photo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div className="flex justify-end gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm("Clear all photo URLs?")) {
+                    PHOTO_SLOTS.forEach(slot => {
+                      setProfile((p) => p ? { ...p, [slot.field]: "" } : p);
+                    });
+                  }
+                }}
+                className="px-4 py-2 border border-border text-navy-600 rounded-lg hover:bg-navy-50 transition-colors text-sm font-medium"
+              >
+                Clear All
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors text-sm font-medium disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  "Save All Photos"
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
