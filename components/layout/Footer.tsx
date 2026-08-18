@@ -86,7 +86,7 @@ export default function Footer({ profile }: FooterProps) {
               </p>
             </div>
             <p className="text-sm text-navy-200 mt-4">
-              © {currentYear} {profile?.fullName ?? "Professor"}. All rights
+              © {currentYear} {profile?.fullName ?? "Dr. Mbita Deogratias"}. All rights
               reserved.
             </p>
           </div>

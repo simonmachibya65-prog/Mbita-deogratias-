@@ -10,6 +10,18 @@ datasource db {
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  email     String   @default("")
+  fullName  String   @default("Admin User")
+  role      String   @default("admin")
+  photoUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Profile {
   id                  Int       @id @default(1)
   fullName            String
