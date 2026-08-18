@@ -122,6 +122,7 @@ model Publication {
   abstract   String?
   pdfUrl     String?
   coverImage String?
+  citations  Int?            @default(0)
   published  Boolean         @default(true)
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
