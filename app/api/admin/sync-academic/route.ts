@@ -532,7 +532,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Fetch and import publications
+// POST - Fetch and import publications (with type mapping fix v2)
 export async function POST(request: NextRequest) {
   const performedBy = await getUsername(request);
 
