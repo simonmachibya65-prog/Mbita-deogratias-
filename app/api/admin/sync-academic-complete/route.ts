@@ -405,6 +405,103 @@ async function fetchFromAcademia(profileName: string, authorName: string): Promi
   }
 }
 
+// Fetch from PubMed by author name
+async function fetchFromPubMed(authorName: string): Promise<SyncedContent> {
+  console.log(`PubMed - Fetching medical/biological publications...`);
+  
+  try {
+    // Step 1: Search for author to get PMIDs
+    const searchResponse = await fetch(
+      `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(authorName)}[Author]&retmax=100&retmode=json`
+    );
+
+    if (!searchResponse.ok) return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+
+    const searchData = await searchResponse.json();
+    const pmids = searchData.esearchresult?.idlist || [];
+
+    if (pmids.length === 0) {
+      return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+    }
+
+    // Step 2: Fetch details for each PMID
+    const summaryResponse = await fetch(
+      `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=json`
+    );
+
+    if (!summaryResponse.ok) return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+
+    const summaryData = await summaryResponse.json();
+    const publications: any[] = [];
+
+    for (const pmid of pmids) {
+      const article = summaryData.result?.[pmid];
+      if (!article || !article.title) continue;
+
+      const authors = article.authors?.map((a: any) => a.name) || [];
+      const year = article.pubdate ? parseInt(article.pubdate.split(' ')[0]) : new Date().getFullYear();
+
+      publications.push({
+        title: article.title,
+        year: year,
+        venue: article.fulljournalname || article.source || "PubMed Journal",
+        authors: authors,
+        type: mapPublicationType("journal-article"),
+        doi: article.elocationid?.replace('doi: ', '') || null,
+        url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+        source: "PubMed",
+      });
+    }
+
+    return {
+      publications,
+      profile: {},
+      coAuthors: [],
+      researchInterests: [],
+      images: [],
+    };
+  } catch (error) {
+    console.error("PubMed fetch error:", error);
+    return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+  }
+}
+
+    if (!response.ok) return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+
+    const data = await response.json();
+    const publications: any[] = [];
+
+    for (const item of data.message?.items || []) {
+      const title = item.title?.[0];
+      if (!title) continue;
+
+      const year = item['published-print']?.['date-parts']?.[0]?.[0];
+      const authors = item.author?.map((a: any) => `${a.given || ''} ${a.family || ''}`.trim()) || [];
+
+      publications.push({
+        title,
+        year: year || new Date().getFullYear(),
+        venue: item['container-title']?.[0] || "Unknown Journal",
+        authors,
+        type: mapPublicationType(item.type || "article"),
+        doi: item.DOI || null,
+        source: "Academia.edu (via CrossRef)",
+      });
+    }
+
+    return {
+      publications,
+      profile: {},
+      coAuthors: [],
+      researchInterests: [],
+      images: [],
+    };
+  } catch (error) {
+    console.error("Academia.edu fetch error:", error);
+    return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+  }
+}
+
 // GET - Preview all content
 export async function GET(request: NextRequest) {
   try {
@@ -541,6 +638,24 @@ export async function GET(request: NextRequest) {
           debugInfo.push(`✅ Scopus: ${scopusData.publications.length} publications`);
         }).catch(err => {
           debugInfo.push(`❌ Scopus error: ${err.message}`);
+        })
+      );
+    }
+
+    // Fetch from PubMed
+    const pubmedProfile = academicProfiles.find((p) => 
+      p.label.toLowerCase().includes("pubmed") || 
+      p.url.toLowerCase().includes("pubmed.ncbi")
+    );
+
+    if (pubmedProfile) {
+      debugInfo.push(`\n🏥 Fetching from PubMed...`);
+      fetchPromises.push(
+        fetchFromPubMed(profile.fullName).then(pubmedData => {
+          result.publications.push(...pubmedData.publications);
+          debugInfo.push(`✅ PubMed: ${pubmedData.publications.length} publications`);
+        }).catch(err => {
+          debugInfo.push(`❌ PubMed error: ${err.message}`);
         })
       );
     }
