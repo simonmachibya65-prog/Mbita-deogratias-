@@ -347,7 +347,12 @@ export async function GET(request: NextRequest) {
       debugInfo.push(`Profile ${idx + 1}: ${p.label} - ${p.url}`);
     });
 
-    // Try Google Scholar first (most comprehensive)
+    debugInfo.push(`\n⚡ Starting PARALLEL fetch from ALL sources...`);
+
+    // Prepare parallel fetch promises
+    const fetchPromises: Promise<{source: string, pubs: any[]}>[] = [];
+
+    // Try Google Scholar
     const scholarProfile = academicProfiles.find((p) => 
       p.label.toLowerCase().includes("scholar") || 
       p.url.toLowerCase().includes("scholar.google")
@@ -356,15 +361,14 @@ export async function GET(request: NextRequest) {
     if (scholarProfile) {
       const scholarId = extractScholarID(scholarProfile.url);
       debugInfo.push(`🎓 Google Scholar profile found: ${scholarProfile.url}`);
-      debugInfo.push(`   Extracted Scholar ID: ${scholarId || "FAILED"}`);
       
       if (scholarId) {
-        const scholarPubs = await fetchFromGoogleScholar(scholarId);
-        debugInfo.push(`   ✅ Google Scholar returned ${scholarPubs.length} publications`);
-        if (scholarPubs.length > 0) {
-          allPublications.push(...scholarPubs);
-          sources.push("Google Scholar");
-        }
+        debugInfo.push(`   Queuing Google Scholar fetch...`);
+        fetchPromises.push(
+          fetchFromGoogleScholar(scholarId)
+            .then(pubs => ({ source: "Google Scholar", pubs }))
+            .catch(() => ({ source: "Google Scholar", pubs: [] }))
+        );
       } else {
         errors.push("Invalid Google Scholar ID in URL: " + scholarProfile.url);
       }
@@ -378,33 +382,31 @@ export async function GET(request: NextRequest) {
     if (orcidProfile) {
       const orcidId = extractORCID(orcidProfile.url);
       debugInfo.push(`🆔 ORCID profile found: ${orcidProfile.url}`);
-      debugInfo.push(`   Extracted ORCID ID: ${orcidId || "FAILED"}`);
       
       if (orcidId) {
-        const orcidPubs = await fetchFromORCID(orcidId);
-        debugInfo.push(`   ✅ ORCID returned ${orcidPubs.length} publications`);
-        if (orcidPubs.length > 0) {
-          allPublications.push(...orcidPubs);
-          sources.push("ORCID");
-        }
+        debugInfo.push(`   Queuing ORCID fetch...`);
+        fetchPromises.push(
+          fetchFromORCID(orcidId)
+            .then(pubs => ({ source: "ORCID", pubs }))
+            .catch(() => ({ source: "ORCID", pubs: [] }))
+        );
       } else {
         errors.push("Invalid ORCID ID in URL: " + orcidProfile.url);
       }
     }
 
-    // Try ResearchGate
+    // Try ResearchGate (detect but note not implemented)
     const rgProfile = academicProfiles.find((p) => 
       p.label.toLowerCase().includes("researchgate") || 
       p.url.toLowerCase().includes("researchgate.net")
     );
 
     if (rgProfile) {
-      const profileName = extractResearchGateProfile(rgProfile.url);
       debugInfo.push(`🔬 ResearchGate profile found: ${rgProfile.url}`);
-      debugInfo.push(`   Note: ResearchGate requires API key (not implemented yet)`);
+      debugInfo.push(`   Note: ResearchGate API requires authentication (fallback to name search)`);
     }
 
-    // Try Academia.edu
+    // Try Academia.edu (detect but note not implemented)
     const academiaProfile = academicProfiles.find((p) => 
       p.label.toLowerCase().includes("academia") || 
       p.url.toLowerCase().includes("academia.edu")
@@ -412,57 +414,58 @@ export async function GET(request: NextRequest) {
 
     if (academiaProfile) {
       debugInfo.push(`🎓 Academia.edu profile found: ${academiaProfile.url}`);
-      debugInfo.push(`   Note: Academia.edu requires web scraping (not implemented yet)`);
+      debugInfo.push(`   Note: Academia.edu requires web scraping (fallback to name search)`);
     }
 
-    // Try arXiv
+    // Try arXiv (both profile link and name search)
     const arxivProfile = academicProfiles.find((p) => 
       p.label.toLowerCase().includes("arxiv") || 
       p.url.toLowerCase().includes("arxiv.org")
     );
 
-    if (arxivProfile) {
-      debugInfo.push(`📄 arXiv profile found: ${arxivProfile.url}`);
-      const arxivPubs = await fetchFromArxiv(profile.fullName);
-      debugInfo.push(`   ✅ arXiv returned ${arxivPubs.length} publications`);
-      if (arxivPubs.length > 0) {
-        allPublications.push(...arxivPubs);
-        sources.push("arXiv");
-      }
-    }
+    debugInfo.push(`📄 Queuing arXiv fetch by name...`);
+    fetchPromises.push(
+      fetchFromArxiv(profile.fullName)
+        .then(pubs => ({ source: "arXiv", pubs }))
+        .catch(() => ({ source: "arXiv", pubs: [] }))
+    );
 
-    // Fallback: Try Semantic Scholar (only if no results from direct profiles)
-    if (allPublications.length === 0) {
-      debugInfo.push(`🔍 Fallback: Searching Semantic Scholar for: ${profile.fullName}`);
-      const scholarPubs = await fetchFromSemanticScholar(profile.fullName);
-      debugInfo.push(`   Semantic Scholar returned ${scholarPubs.length} publications`);
-      if (scholarPubs.length > 0) {
-        allPublications.push(...scholarPubs);
-        sources.push("Semantic Scholar");
-      }
-    }
+    // Always try Semantic Scholar as additional source
+    debugInfo.push(`🔍 Queuing Semantic Scholar fetch for: ${profile.fullName}`);
+    fetchPromises.push(
+      fetchFromSemanticScholar(profile.fullName)
+        .then(pubs => ({ source: "Semantic Scholar", pubs }))
+        .catch(() => ({ source: "Semantic Scholar", pubs: [] }))
+    );
 
-    // Fallback: Try CrossRef (only if still no results)
-    if (allPublications.length === 0) {
-      debugInfo.push(`🔍 Fallback: Searching CrossRef for: ${profile.fullName}`);
-      const crossRefPubs = await fetchFromCrossRef(profile.fullName);
-      debugInfo.push(`   CrossRef returned ${crossRefPubs.length} publications`);
-      if (crossRefPubs.length > 0) {
-        allPublications.push(...crossRefPubs);
-        sources.push("CrossRef");
-      }
-    }
+    // Always try CrossRef as additional source
+    debugInfo.push(`🔍 Queuing CrossRef fetch for: ${profile.fullName}`);
+    fetchPromises.push(
+      fetchFromCrossRef(profile.fullName)
+        .then(pubs => ({ source: "CrossRef", pubs }))
+        .catch(() => ({ source: "CrossRef", pubs: [] }))
+    );
 
-    // Fallback: Try arXiv by name if no arXiv profile was provided
-    if (!arxivProfile && allPublications.length === 0) {
-      debugInfo.push(`🔍 Fallback: Searching arXiv for: ${profile.fullName}`);
-      const arxivPubs = await fetchFromArxiv(profile.fullName);
-      debugInfo.push(`   arXiv returned ${arxivPubs.length} publications`);
-      if (arxivPubs.length > 0) {
-        allPublications.push(...arxivPubs);
-        sources.push("arXiv");
+    debugInfo.push(`\n⏳ Fetching from ${fetchPromises.length} sources in parallel...`);
+
+    // Fetch from all sources simultaneously
+    const allResults = await Promise.all(fetchPromises);
+
+    // Combine all results
+    debugInfo.push(`\n📊 Results from each source:`);
+    allResults.forEach(({ source, pubs }) => {
+      if (pubs.length > 0) {
+        allPublications.push(...pubs);
+        if (!sources.includes(source)) {
+          sources.push(source);
+        }
+        debugInfo.push(`   ✅ ${source}: ${pubs.length} publications`);
+      } else {
+        debugInfo.push(`   ⚠️ ${source}: 0 publications`);
       }
-    }
+    });
+
+    debugInfo.push(`\n📚 Total before deduplication: ${allPublications.length} publications`);
 
     console.log("Debug Info:", debugInfo);
 
