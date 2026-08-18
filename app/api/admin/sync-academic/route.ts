@@ -279,6 +279,7 @@ async function fetchFromCrossRef(authorName: string) {
         doi: item.DOI || null,
         source: "CrossRef",
       });
+      console.log(`CrossRef pub type: ${item.type} -> ${mapPublicationType(item.type || "article")}`);
     }
 
     console.log(`Found ${publications.length} papers from CrossRef`);
