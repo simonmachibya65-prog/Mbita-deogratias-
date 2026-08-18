@@ -602,13 +602,16 @@ export async function POST(request: NextRequest) {
       });
 
       if (!existing) {
+        const mappedType = mapPublicationType(pub.type || "article");
+        console.log(`Creating publication: "${pub.title}" with type: ${pub.type} -> ${mappedType}`);
+        
         await prisma.publication.create({
           data: {
             title: pub.title,
             authors: pub.authors.length > 0 ? pub.authors : [data.profile.name || "Unknown"],
             year: pub.year,
             venue: pub.venue,
-            type: mapPublicationType(pub.type || "article") as any,
+            type: mappedType as any,
             citations: pub.citations || 0,
             published: true,
           },
