@@ -91,9 +91,16 @@ export async function PUT(request: NextRequest) {
   const performedBy = session.username ?? "admin";
 
   let body: unknown;
-  try { body = await request.json(); } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  try { 
+    body = await request.json(); 
+  } catch (parseError) {
+    console.error("JSON parse error:", parseError);
+    return NextResponse.json({ error: "Invalid JSON in request body." }, { status: 400 });
   }
+
+  // Log received data for debugging
+  console.log("Received profile update request:");
+  console.log("Keys:", Object.keys(body as object));
 
   const result = profileSchema.safeParse(body);
   if (!result.success) {
@@ -103,14 +110,23 @@ export async function PUT(request: NextRequest) {
       fields[field] = issue.message;
     }
     console.error("Profile validation failed:", JSON.stringify(fields, null, 2));
-    return NextResponse.json({ error: "Validation failed.", fields }, { status: 400 });
+    console.error("Validation errors:", result.error.errors);
+    return NextResponse.json({ 
+      error: "Validation failed. Please check all required fields.", 
+      fields,
+      details: result.error.errors.map(e => ({ field: e.path.join("."), message: e.message }))
+    }, { status: 400 });
   }
 
   try {
     // Filter out null values from JSON fields for Prisma compatibility
     const { academicProfiles, skills, languages, memberships, education, workExperience, certifications, faq, leadershipPositions, mediaAppearances, ...scalarData } = result.data;
+    
+    // Ensure academicProfiles is always an array
+    const safeAcademicProfiles = Array.isArray(academicProfiles) ? academicProfiles : [];
+    
     const jsonFields = {
-      ...(academicProfiles !== null && academicProfiles !== undefined ? { academicProfiles } : {}),
+      academicProfiles: safeAcademicProfiles,
       ...(skills !== null && skills !== undefined ? { skills } : {}),
       ...(languages !== null && languages !== undefined ? { languages } : {}),
       ...(memberships !== null && memberships !== undefined ? { memberships } : {}),
@@ -121,14 +137,18 @@ export async function PUT(request: NextRequest) {
       ...(leadershipPositions !== null && leadershipPositions !== undefined ? { leadershipPositions } : {}),
       ...(mediaAppearances !== null && mediaAppearances !== undefined ? { mediaAppearances } : {}),
     };
+    
     const updateData = { ...scalarData, ...jsonFields };
+    
+    console.log("Attempting to update profile with ID: 1");
+    
     const updated = await prisma.profile.upsert({
       where: { id: 1 },
       update: updateData,
       create: {
         id: 1,
         ...updateData,
-        academicProfiles: academicProfiles ?? [],
+        academicProfiles: safeAcademicProfiles,
         photoUrl: scalarData.photoUrl ?? "",
         navbarPhotoUrl: scalarData.navbarPhotoUrl ?? "",
         heroPhotoUrl: scalarData.heroPhotoUrl ?? "",
@@ -139,14 +159,28 @@ export async function PUT(request: NextRequest) {
         cvUrl: scalarData.cvUrl ?? "",
       },
     });
-    revalidatePath("/"); revalidatePath("/about"); revalidatePath("/contact");
+    
+    console.log("Profile updated successfully");
+    
+    revalidatePath("/"); 
+    revalidatePath("/about"); 
+    revalidatePath("/contact");
     revalidateTag("profile");
     revalidateTag("home");
+    
     await logAction("UPDATE", "profile", "1", result.data.fullName, performedBy);
+    
     return NextResponse.json(updated);
   } catch (err) {
-    console.error("Profile upsert failed:", err);
-    return NextResponse.json({ error: "Failed to update profile." }, { status: 500 });
+    console.error("Profile upsert failed - Full error:", err);
+    console.error("Error name:", (err as Error).name);
+    console.error("Error message:", (err as Error).message);
+    console.error("Error stack:", (err as Error).stack);
+    
+    return NextResponse.json({ 
+      error: "Failed to update profile. Please try again or contact support.",
+      details: (err as Error).message 
+    }, { status: 500 });
   }
 }
 

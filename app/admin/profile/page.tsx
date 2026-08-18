@@ -323,22 +323,41 @@ export default function AdminProfilePage() {
     if (!profile) return;
     setSaving(true);
     setErrors({});
+    
     try {
+      console.log('Submitting profile update:', {
+        fullName: profile.fullName,
+        email: profile.email,
+        academicProfiles: profile.academicProfiles
+      });
+      
       const res = await fetch("/api/admin/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
       });
+      
       const data = await res.json();
+      
       if (res.ok) {
         showToast("success", "Profile updated successfully.");
         setProfile(data);
       } else {
+        console.error('Profile update failed:', data);
         if (data.fields) setErrors(data.fields);
-        showToast("error", data.error ?? "Failed to update profile.");
+        
+        // Show detailed error message
+        let errorMessage = data.error ?? "Failed to update profile.";
+        if (data.details) {
+          errorMessage += " Details: " + (Array.isArray(data.details) 
+            ? data.details.map((d: {field: string, message: string}) => `${d.field}: ${d.message}`).join(", ")
+            : data.details);
+        }
+        showToast("error", errorMessage);
       }
-    } catch {
-      showToast("error", "An unexpected error occurred.");
+    } catch (error) {
+      console.error('Profile update error:', error);
+      showToast("error", "An unexpected error occurred. Check console for details.");
     } finally {
       setSaving(false);
     }
