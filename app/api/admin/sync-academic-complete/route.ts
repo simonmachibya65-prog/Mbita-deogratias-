@@ -22,6 +22,24 @@ function extractORCID(url: string): string | null {
   return match ? match[1] : null;
 }
 
+// Extract ResearchGate profile name
+function extractResearchGateProfile(url: string): string | null {
+  const match = url.match(/researchgate\.net\/profile\/([^/?]+)/);
+  return match ? match[1] : null;
+}
+
+// Extract Academia.edu profile
+function extractAcademiaProfile(url: string): string | null {
+  const match = url.match(/academia\.edu\/([^/?]+)/);
+  return match ? match[1] : null;
+}
+
+// Extract Scopus author ID
+function extractScopusID(url: string): string | null {
+  const match = url.match(/authorId=(\d+)/);
+  return match ? match[1] : null;
+}
+
 interface SyncedContent {
   publications: any[];
   profile: {
@@ -214,6 +232,156 @@ async function fetchCompleteORCID(orcidId: string): Promise<SyncedContent> {
   }
 }
 
+// Fetch from Scopus by author name (using Semantic Scholar as proxy since Scopus requires auth)
+async function fetchFromScopus(authorName: string): Promise<SyncedContent> {
+  // Scopus API requires institutional access, so we use Semantic Scholar as backup
+  // which also indexes Scopus papers
+  console.log(`Scopus detected - using Semantic Scholar API as data source`);
+  
+  try {
+    const searchResponse = await fetch(
+      `https://api.semanticscholar.org/graph/v1/author/search?query=${encodeURIComponent(authorName)}&limit=5`
+    );
+
+    if (!searchResponse.ok) return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+
+    const searchData = await searchResponse.json();
+    
+    if (!searchData.data || searchData.data.length === 0) {
+      return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+    }
+
+    const authorId = searchData.data[0]?.authorId;
+    if (!authorId) return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+
+    const papersResponse = await fetch(
+      `https://api.semanticscholar.org/graph/v1/author/${authorId}/papers?fields=title,year,authors,venue,citationCount,publicationTypes&limit=100`
+    );
+
+    if (!papersResponse.ok) return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+
+    const papersData = await papersResponse.json();
+    const publications: any[] = [];
+
+    for (const paper of papersData.data || []) {
+      if (paper.title) {
+        publications.push({
+          title: paper.title,
+          year: paper.year || new Date().getFullYear(),
+          venue: paper.venue || "Unknown Venue",
+          authors: paper.authors?.map((a: any) => a.name) || [],
+          citations: paper.citationCount || 0,
+          type: "journal",
+          source: "Scopus (via Semantic Scholar)",
+        });
+      }
+    }
+
+    return {
+      publications,
+      profile: {},
+      coAuthors: [],
+      researchInterests: [],
+      images: [],
+    };
+  } catch (error) {
+    console.error("Scopus fetch error:", error);
+    return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+  }
+}
+
+// Fetch from ResearchGate by scraping author name
+async function fetchFromResearchGate(profileName: string, authorName: string): Promise<SyncedContent> {
+  console.log(`ResearchGate detected - using CrossRef as data source`);
+  
+  // ResearchGate requires API key, so we use CrossRef as backup
+  try {
+    const response = await fetch(
+      `https://api.crossref.org/works?query.author=${encodeURIComponent(authorName)}&rows=100&select=title,author,published-print,container-title,type,DOI`
+    );
+
+    if (!response.ok) return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+
+    const data = await response.json();
+    const publications: any[] = [];
+
+    for (const item of data.message?.items || []) {
+      const title = item.title?.[0];
+      if (!title) continue;
+
+      const year = item['published-print']?.['date-parts']?.[0]?.[0];
+      const authors = item.author?.map((a: any) => `${a.given || ''} ${a.family || ''}`.trim()) || [];
+
+      publications.push({
+        title,
+        year: year || new Date().getFullYear(),
+        venue: item['container-title']?.[0] || "Unknown Journal",
+        authors,
+        type: "journal",
+        doi: item.DOI || null,
+        source: "ResearchGate (via CrossRef)",
+      });
+    }
+
+    return {
+      publications,
+      profile: {},
+      coAuthors: [],
+      researchInterests: [],
+      images: [],
+    };
+  } catch (error) {
+    console.error("ResearchGate fetch error:", error);
+    return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+  }
+}
+
+// Fetch from Academia.edu by author name
+async function fetchFromAcademia(profileName: string, authorName: string): Promise<SyncedContent> {
+  console.log(`Academia.edu detected - using CrossRef as data source`);
+  
+  // Academia.edu has no public API, using CrossRef as backup
+  try {
+    const response = await fetch(
+      `https://api.crossref.org/works?query.author=${encodeURIComponent(authorName)}&rows=50&select=title,author,published-print,container-title,type,DOI`
+    );
+
+    if (!response.ok) return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+
+    const data = await response.json();
+    const publications: any[] = [];
+
+    for (const item of data.message?.items || []) {
+      const title = item.title?.[0];
+      if (!title) continue;
+
+      const year = item['published-print']?.['date-parts']?.[0]?.[0];
+      const authors = item.author?.map((a: any) => `${a.given || ''} ${a.family || ''}`.trim()) || [];
+
+      publications.push({
+        title,
+        year: year || new Date().getFullYear(),
+        venue: item['container-title']?.[0] || "Unknown Journal",
+        authors,
+        type: "journal",
+        doi: item.DOI || null,
+        source: "Academia.edu (via CrossRef)",
+      });
+    }
+
+    return {
+      publications,
+      profile: {},
+      coAuthors: [],
+      researchInterests: [],
+      images: [],
+    };
+  } catch (error) {
+    console.error("Academia.edu fetch error:", error);
+    return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
+  }
+}
+
 // GET - Preview all content
 export async function GET(request: NextRequest) {
   try {
@@ -244,8 +412,14 @@ export async function GET(request: NextRequest) {
     };
 
     const debugInfo: string[] = [];
+    const fetchPromises: Promise<void>[] = [];
 
-    // Try Google Scholar
+    debugInfo.push(`📋 Found ${academicProfiles.length} academic profile links`);
+    academicProfiles.forEach((p, idx) => {
+      debugInfo.push(`  ${idx + 1}. ${p.label}: ${p.url}`);
+    });
+
+    // Fetch from Google Scholar
     const scholarProfile = academicProfiles.find((p) => 
       p.label.toLowerCase().includes("scholar") || 
       p.url.toLowerCase().includes("scholar.google")
@@ -254,20 +428,23 @@ export async function GET(request: NextRequest) {
     if (scholarProfile) {
       const scholarId = extractScholarID(scholarProfile.url);
       if (scholarId) {
-        debugInfo.push(`Fetching complete Google Scholar profile...`);
-        const scholarData = await fetchCompleteGoogleScholar(scholarId);
-        
-        result.publications.push(...scholarData.publications);
-        result.profile = { ...result.profile, ...scholarData.profile };
-        result.coAuthors.push(...scholarData.coAuthors);
-        result.researchInterests.push(...scholarData.researchInterests);
-        result.images.push(...scholarData.images);
-        
-        debugInfo.push(`✅ Google Scholar: ${scholarData.publications.length} publications, ${scholarData.coAuthors.length} co-authors`);
+        debugInfo.push(`\n🎓 Fetching from Google Scholar...`);
+        fetchPromises.push(
+          fetchCompleteGoogleScholar(scholarId).then(scholarData => {
+            result.publications.push(...scholarData.publications);
+            result.profile = { ...result.profile, ...scholarData.profile };
+            result.coAuthors.push(...scholarData.coAuthors);
+            result.researchInterests.push(...scholarData.researchInterests);
+            result.images.push(...scholarData.images);
+            debugInfo.push(`✅ Google Scholar: ${scholarData.publications.length} publications, ${scholarData.coAuthors.length} co-authors`);
+          }).catch(err => {
+            debugInfo.push(`❌ Google Scholar error: ${err.message}`);
+          })
+        );
       }
     }
 
-    // Try ORCID
+    // Fetch from ORCID
     const orcidProfile = academicProfiles.find((p) => 
       p.label.toLowerCase().includes("orcid") || p.url.toLowerCase().includes("orcid")
     );
@@ -275,16 +452,80 @@ export async function GET(request: NextRequest) {
     if (orcidProfile) {
       const orcidId = extractORCID(orcidProfile.url);
       if (orcidId) {
-        debugInfo.push(`Fetching complete ORCID profile...`);
-        const orcidData = await fetchCompleteORCID(orcidId);
-        
-        result.publications.push(...orcidData.publications);
-        if (orcidData.profile.name) result.profile.name = orcidData.profile.name;
-        if (orcidData.profile.bio) result.profile.bio = orcidData.profile.bio;
-        
-        debugInfo.push(`✅ ORCID: ${orcidData.publications.length} publications`);
+        debugInfo.push(`\n🆔 Fetching from ORCID...`);
+        fetchPromises.push(
+          fetchCompleteORCID(orcidId).then(orcidData => {
+            result.publications.push(...orcidData.publications);
+            if (orcidData.profile.name) result.profile.name = orcidData.profile.name;
+            if (orcidData.profile.bio) result.profile.bio = orcidData.profile.bio;
+            debugInfo.push(`✅ ORCID: ${orcidData.publications.length} publications`);
+          }).catch(err => {
+            debugInfo.push(`❌ ORCID error: ${err.message}`);
+          })
+        );
       }
     }
+
+    // Fetch from ResearchGate
+    const rgProfile = academicProfiles.find((p) => 
+      p.label.toLowerCase().includes("researchgate") || 
+      p.url.toLowerCase().includes("researchgate.net")
+    );
+
+    if (rgProfile) {
+      const profileName = extractResearchGateProfile(rgProfile.url);
+      debugInfo.push(`\n🔬 Fetching from ResearchGate...`);
+      fetchPromises.push(
+        fetchFromResearchGate(profileName || '', profile.fullName).then(rgData => {
+          result.publications.push(...rgData.publications);
+          debugInfo.push(`✅ ResearchGate: ${rgData.publications.length} publications`);
+        }).catch(err => {
+          debugInfo.push(`❌ ResearchGate error: ${err.message}`);
+        })
+      );
+    }
+
+    // Fetch from Academia.edu
+    const academiaProfile = academicProfiles.find((p) => 
+      p.label.toLowerCase().includes("academia") || 
+      p.url.toLowerCase().includes("academia.edu")
+    );
+
+    if (academiaProfile) {
+      const profileName = extractAcademiaProfile(academiaProfile.url);
+      debugInfo.push(`\n📚 Fetching from Academia.edu...`);
+      fetchPromises.push(
+        fetchFromAcademia(profileName || '', profile.fullName).then(acadData => {
+          result.publications.push(...acadData.publications);
+          debugInfo.push(`✅ Academia.edu: ${acadData.publications.length} publications`);
+        }).catch(err => {
+          debugInfo.push(`❌ Academia.edu error: ${err.message}`);
+        })
+      );
+    }
+
+    // Fetch from Scopus
+    const scopusProfile = academicProfiles.find((p) => 
+      p.label.toLowerCase().includes("scopus") || 
+      p.url.toLowerCase().includes("scopus.com")
+    );
+
+    if (scopusProfile) {
+      debugInfo.push(`\n📊 Fetching from Scopus...`);
+      fetchPromises.push(
+        fetchFromScopus(profile.fullName).then(scopusData => {
+          result.publications.push(...scopusData.publications);
+          debugInfo.push(`✅ Scopus: ${scopusData.publications.length} publications`);
+        }).catch(err => {
+          debugInfo.push(`❌ Scopus error: ${err.message}`);
+        })
+      );
+    }
+
+    // Wait for all fetches to complete
+    debugInfo.push(`\n⏳ Fetching from ${fetchPromises.length} sources in parallel...`);
+    await Promise.all(fetchPromises);
+    debugInfo.push(`✅ All fetches completed`);
 
     // Remove duplicate publications
     const uniquePubs = result.publications.filter((pub, index, self) =>
