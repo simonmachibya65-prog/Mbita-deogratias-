@@ -10,6 +10,32 @@ async function getUsername(request: NextRequest): Promise<string> {
   return session.username ?? "admin";
 }
 
+// Helper function to map external publication types to Prisma enum
+function mapPublicationType(externalType: string): string {
+  const typeMap: Record<string, string> = {
+    // CrossRef types
+    'journal-article': 'journal',
+    'proceedings-article': 'conference',
+    'book-chapter': 'book_chapter',
+    'book': 'book',
+    'report': 'technical_report',
+    'posted-content': 'other',
+    // Google Scholar / Semantic Scholar types
+    'article': 'journal',
+    'conference': 'conference',
+    'book': 'book',
+    'chapter': 'book_chapter',
+    'preprint': 'other',
+    // arXiv types
+    'preprint': 'other',
+    // Fallback
+    'other': 'other',
+  };
+
+  const normalized = externalType.toLowerCase().replace(/\s+/g, '-');
+  return typeMap[normalized] || 'other';
+}
+
 // Helper to extract ORCID from URL or raw ID
 function extractORCID(input: string): string | null {
   const match = input.match(/(\d{4}-\d{4}-\d{4}-\d{3}[0-9X])/);
@@ -109,7 +135,7 @@ async function fetchFromGoogleScholar(scholarId: string) {
         venue: "Journal/Conference", // Google Scholar doesn't always show venue in list
         authors: [],
         citations: citations[i] || 0,
-        type: "article",
+        type: mapPublicationType("article"),
         source: "Google Scholar",
       });
     }
@@ -150,7 +176,7 @@ async function fetchFromORCID(orcidId: string) {
           year: year ? parseInt(year) : new Date().getFullYear(),
           venue: venue || "Unknown Journal",
           authors: [],
-          type: "journal-article",
+          type: mapPublicationType("journal-article"),
           source: "ORCID",
         });
       }
@@ -205,7 +231,7 @@ async function fetchFromSemanticScholar(authorName: string) {
               venue: paper.venue || "Unknown Venue",
               authors: paper.authors?.map((a: any) => a.name) || [],
               citations: paper.citationCount || 0,
-              type: paper.publicationTypes?.[0] || "article",
+              type: mapPublicationType(paper.publicationTypes?.[0] || "article"),
               source: "Semantic Scholar",
             });
           }
@@ -249,7 +275,7 @@ async function fetchFromCrossRef(authorName: string) {
         year: year || new Date().getFullYear(),
         venue: item['container-title']?.[0] || "Unknown Journal",
         authors,
-        type: item.type || "article",
+        type: mapPublicationType(item.type || "article"),
         doi: item.DOI || null,
         source: "CrossRef",
       });
@@ -292,7 +318,7 @@ async function fetchFromArxiv(authorName: string) {
           year,
           venue: "arXiv",
           authors: [],
-          type: "preprint",
+          type: mapPublicationType("preprint"),
           abstract: summaryMatch ? summaryMatch[1].trim().substring(0, 200) : undefined,
           source: "arXiv",
         });
@@ -546,7 +572,7 @@ export async function POST(request: NextRequest) {
           authors: pub.authors.length > 0 ? pub.authors : [previewData.fullName || "Unknown"],
           year: pub.year,
           venue: pub.venue,
-          type: pub.type || "journal-article",
+          type: mapPublicationType(pub.type || "journal-article"),
           abstract: `Automatically imported from ${pub.source}`,
           citations: pub.citations || 0,
           published: true,
