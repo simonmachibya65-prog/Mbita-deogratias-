@@ -25,6 +25,10 @@ function mapPublicationType(externalType: string): string {
     'conference': 'conference',
     'chapter': 'book_chapter',
     'preprint': 'other',
+    // Already-mapped values (idempotent mapping)
+    'journal': 'journal',
+    'book_chapter': 'book_chapter',
+    'technical_report': 'technical_report',
     // Fallback
     'other': 'other',
   };
