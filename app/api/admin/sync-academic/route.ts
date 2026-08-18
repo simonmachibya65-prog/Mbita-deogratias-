@@ -23,10 +23,7 @@ function mapPublicationType(externalType: string): string {
     // Google Scholar / Semantic Scholar types
     'article': 'journal',
     'conference': 'conference',
-    'book': 'book',
     'chapter': 'book_chapter',
-    'preprint': 'other',
-    // arXiv types
     'preprint': 'other',
     // Fallback
     'other': 'other',
