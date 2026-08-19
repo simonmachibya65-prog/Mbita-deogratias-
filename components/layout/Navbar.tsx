@@ -280,9 +280,9 @@ export default function Navbar({ profile, hiddenSections = [] }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
 
-          {/* ── ENHANCED BRAND SECTION ── */}
+          {/* ── BRAND SECTION (Avatar Only) ── */}
           <div className="flex items-center gap-4 flex-shrink-0">
-            {/* Profile Photo with Glow Effect */}
+            {/* Profile Photo with Glow Effect - Top Left */}
             <div className="relative group">
               <button
                 onClick={() => window.location.href = '/login'}
@@ -300,21 +300,6 @@ export default function Navbar({ profile, hiddenSections = [] }: NavbarProps) {
                 />
               </button>
             </div>
-
-            {/* Name & Title with Enhanced Typography */}
-            <Link
-              href="/"
-              className="group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1 -ml-2"
-            >
-              <span className="block text-lg font-bold text-navy-900 dark:text-gray-100 group-hover:text-primary dark:group-hover:text-primary-light transition-colors duration-200 tracking-tight">
-                {profile?.fullName ?? "Professor"}
-              </span>
-              {profile?.title && (
-                <span className="block text-xs font-medium text-navy-500 dark:text-navy-400 group-hover:text-navy-600 dark:group-hover:text-navy-300 transition-colors duration-200 max-w-[220px] truncate">
-                  {profile.title}
-                </span>
-              )}
-            </Link>
 
             {/* Mobile Hamburger */}
             <div className="lg:hidden ml-auto">
