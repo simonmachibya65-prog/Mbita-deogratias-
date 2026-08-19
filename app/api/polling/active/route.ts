@@ -5,22 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const polls = await prisma.livePoll.findMany({
       where: {
-        status: "active",
-        OR: [
-          { endTime: null },
-          { endTime: { gte: new Date() } },
-        ],
-      },
-      include: {
-        creator: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-        _count: {
-          select: { responses: true },
-        },
+        active: true,
       },
       orderBy: { createdAt: "desc" },
     });
