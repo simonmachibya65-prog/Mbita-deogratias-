@@ -731,7 +731,8 @@ export async function POST(request: NextRequest) {
           authors: pub.authors.length > 0 ? pub.authors : [data.profile.name || "Unknown"],
           year: pub.year,
           venue: pub.venue,
-          type: mappedType as any,
+          type: mappedType, // Already mapped, no need for 'as any'
+          abstract: pub.abstract || `Automatically imported from ${pub.source || 'external source'}`,
           published: true,
         };
         
