@@ -470,42 +470,6 @@ async function fetchFromPubMed(authorName: string): Promise<SyncedContent> {
   }
 }
 
-    if (!response.ok) return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
-
-    const data = await response.json();
-    const publications: any[] = [];
-
-    for (const item of data.message?.items || []) {
-      const title = item.title?.[0];
-      if (!title) continue;
-
-      const year = item['published-print']?.['date-parts']?.[0]?.[0];
-      const authors = item.author?.map((a: any) => `${a.given || ''} ${a.family || ''}`.trim()) || [];
-
-      publications.push({
-        title,
-        year: year || new Date().getFullYear(),
-        venue: item['container-title']?.[0] || "Unknown Journal",
-        authors,
-        type: mapPublicationType(item.type || "article"),
-        doi: item.DOI || null,
-        source: "Academia.edu (via CrossRef)",
-      });
-    }
-
-    return {
-      publications,
-      profile: {},
-      coAuthors: [],
-      researchInterests: [],
-      images: [],
-    };
-  } catch (error) {
-    console.error("Academia.edu fetch error:", error);
-    return { publications: [], profile: {}, coAuthors: [], researchInterests: [], images: [] };
-  }
-}
-
 // GET - Preview all content
 export async function GET(request: NextRequest) {
   try {
