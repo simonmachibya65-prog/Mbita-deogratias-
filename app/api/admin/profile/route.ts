@@ -93,7 +93,8 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   const response = NextResponse.json({});
   const session = await getSession(request, response);
-  const performedBy = session.username ?? "admin";
+  if (!session.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const performedBy = session.username;
 
   let body: unknown;
   try { body = await request.json(); } catch {
@@ -173,7 +174,8 @@ export async function PUT(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const response = NextResponse.json({});
   const session = await getSession(request, response);
-  const performedBy = session.username ?? "admin";
+  if (!session.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const performedBy = session.username;
 
   try {
     const formData = await request.formData();
