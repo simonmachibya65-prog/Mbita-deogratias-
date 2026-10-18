@@ -20,10 +20,13 @@ const publicationSchema = z.object({
   published: z.boolean().nullable().optional(),
 });
 
-async function getUsername(request: NextRequest): Promise<string> {
+async function requireAuth(request: NextRequest): Promise<{ username: string } | NextResponse> {
   const res = new NextResponse();
   const session = await getIronSession<SessionData>(request, res, sessionOptions);
-  return session.username ?? "admin";
+  if (!session.username) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return { username: session.username };
 }
 
 export async function GET() {
@@ -38,7 +41,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const performedBy = await getUsername(request);
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const performedBy = auth.username;
 
   let body: unknown;
   try {
@@ -72,7 +77,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const performedBy = await getUsername(request);
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const performedBy = auth.username;
 
   let body: unknown;
   try {
@@ -102,7 +109,9 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const performedBy = await getUsername(request);
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const performedBy = auth.username;
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
