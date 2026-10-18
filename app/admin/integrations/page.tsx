@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import AdminLayout from '@/components/layout/AdminLayout';
 
 interface Platform {
   id: string;
@@ -263,16 +262,14 @@ export default function IntegrationsPage() {
 
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </AdminLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
     );
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -502,7 +499,7 @@ export default function IntegrationsPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }
 
