@@ -56,26 +56,38 @@ export default function AdminPublicationsPage() {
 
   const handleBulkDelete = async () => {
     if (!confirm(`Delete ${selected.size} items?`)) return;
-    const count = selected.size;
-    for (const id of Array.from(selected)) {
-      await fetch(`/api/admin/publications?id=${id}`, { method: "DELETE" });
+    const ids = Array.from(selected);
+    const failed: string[] = [];
+    for (const id of ids) {
+      const res = await fetch(`/api/admin/publications?id=${id}`, { method: "DELETE" });
+      if (!res.ok) failed.push(id);
     }
     setSelected(new Set());
-    showToast("success", `${count} items deleted.`);
+    if (failed.length === 0) {
+      showToast("success", `${ids.length} items deleted.`);
+    } else {
+      showToast("error", `${ids.length - failed.length} deleted, ${failed.length} failed.`);
+    }
     loadPublications();
   };
 
   const handleBulkStatus = async (published: boolean) => {
-    const count = selected.size;
-    for (const id of Array.from(selected)) {
-      await fetch("/api/admin/publications", {
+    const ids = Array.from(selected);
+    const failed: string[] = [];
+    for (const id of ids) {
+      const res = await fetch("/api/admin/publications", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, published }),
       });
+      if (!res.ok) failed.push(id);
     }
     setSelected(new Set());
-    showToast("success", `${count} items updated.`);
+    if (failed.length === 0) {
+      showToast("success", `${ids.length} items updated.`);
+    } else {
+      showToast("error", `${ids.length - failed.length} updated, ${failed.length} failed.`);
+    }
     loadPublications();
   };
 
