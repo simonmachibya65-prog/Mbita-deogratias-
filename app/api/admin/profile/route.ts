@@ -189,6 +189,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Only JPEG, PNG, and WebP are allowed." }, { status: 400 });
     }
 
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "File too large. Maximum size is 5MB." }, { status: 413 });
+    }
+
     if (!PHOTO_SLOTS.includes(slot)) {
       return NextResponse.json({ error: `Invalid slot. Must be one of: ${PHOTO_SLOTS.join(", ")}` }, { status: 400 });
     }
