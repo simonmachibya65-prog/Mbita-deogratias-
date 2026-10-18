@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbo",
     "dev:standard": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "prisma generate && prisma migrate deploy && (node prisma/seed.mjs || echo 'seed skipped') && next build",
     "postinstall": "prisma generate",
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
