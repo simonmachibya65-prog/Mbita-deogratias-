@@ -84,11 +84,18 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
+    // Auto-enable auto-sync when any platform URL is saved
+    await prisma.profile.update({
+      where: { id: profile.id },
+      data: { autoSyncEnabled: true },
+    });
+
     return NextResponse.json({
       success: true,
-      message: `${label} URL updated successfully`,
+      message: `${label} URL saved and auto-sync enabled automatically`,
       platformId,
       profileUrl,
+      autoSyncEnabled: true,
     });
   } catch (error: any) {
     console.error('Error updating platform URL:', error);
