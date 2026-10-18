@@ -9,8 +9,15 @@ export interface SessionData {
   createdAt?: number;
 }
 
+const secret = process.env.NEXTAUTH_SECRET ?? process.env.SESSION_SECRET;
+if (!secret) {
+  throw new Error(
+    "Session secret is not set. Please set NEXTAUTH_SECRET or SESSION_SECRET in your environment."
+  );
+}
+
 export const sessionOptions: SessionOptions = {
-  password: process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "2085db4540e70e2f74fdbabcbf8493fd641cd9700ee9e932290e7fd5ead1b28f",
+  password: secret,
   cookieName: "mbita_session",
   cookieOptions: {
     secure: process.env.NODE_ENV === "production",
