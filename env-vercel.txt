@@ -1,0 +1,17 @@
+# Database
+DATABASE_URL="postgresql://neondb_owner:npg_DPg3GKzS4vbw@ep-rapid-haze-b9h4irm6-pooler.c-7.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
+# Session
+SESSION_SECRET="mbita2026secretkey32charsminimum"
+
+# Base URL for sitemap and robots.txt
+NEXT_PUBLIC_BASE_URL="https://mbita-deogratias.vercel.app"
+
+# Cron secret (for auto-sync)
+CRON_SECRET="mbitacron2026secret"
+
+# Professor contact email
+PROFESSOR_EMAIL="emmanuel.mbita@sua.ac.tz"
+
+# MFA app name
+MFA_APP_NAME="Professor Website"
